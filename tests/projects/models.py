@@ -14,8 +14,15 @@ if TYPE_CHECKING:
 
 User = get_user_model()
 
-
+count=0
 class NamedModel(models.Model):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Just to print / showcase the number of instances being generated
+        global count
+        count += 1
+        print(count)
+
     class Meta:
         abstract = True
 
@@ -59,7 +66,6 @@ class Project(NamedModel):
     def is_small(self) -> bool:
         return self._milestone_count < 3  # type: ignore
 
-
 class Milestone(NamedModel):
     issues: "RelatedManager[Issue]"
 
@@ -75,9 +81,12 @@ class Milestone(NamedModel):
     project_id: int
     project = models.ForeignKey[Project](
         Project,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        default=None,
+        null=True,
+        blank=True,
         related_name="milestones",
-        related_query_name="milestone",
+        # related_query_name="milestone",
     )
 
 

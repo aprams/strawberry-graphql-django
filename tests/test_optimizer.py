@@ -1,4 +1,6 @@
+import contextlib
 import datetime
+import io
 from typing import Any, cast
 
 import pytest
@@ -1791,3 +1793,61 @@ def test_prefetch_multi_field_single_required_multiple_returned(
             "path": ["milestone", "firstIssueRequired"],
         }
     ]
+### NEW
+
+
+@strawberry_django.type(
+    Project,
+    pagination=True
+)
+class DemoProjectType:
+    pk: strawberry.ID
+    milestones: list["DemoMilestoneType"]
+
+    @classmethod
+    def get_queryset(cls, queryset, info, **kwargs):
+        return queryset
+
+@strawberry_django.type(Milestone, pagination=True)
+class DemoMilestoneType:
+    pk: strawberry.ID
+    project: DemoProjectType
+
+@pytest.mark.django_db(transaction=True)
+def test_prefetch_multi_field_single_required_multiple_returned_num_instances(
+    db
+):
+
+    @strawberry.type
+    class Query:
+        # projects: list[ProjectType] = strawberry_django.field()
+        milestone: DemoMilestoneType = strawberry_django.field()
+
+    project = ProjectFactory.create()
+
+    milestone = MilestoneFactory.create(name="Foo", project=project)
+
+    # implement this: Ignore stdout
+    with contextlib.redirect_stdout(io.StringIO()):
+        project2 = ProjectFactory.create()
+        milestone2 = MilestoneFactory.create_batch(1000, name="Bar", project=project)
+
+    print("INIT FINISHED")
+
+    query = """\
+      query TestQuery ($pk: ID!) {
+        milestone(pk: $pk) {
+          pk
+          project {
+            pk
+          }
+        }
+      }
+    """
+
+    schema = strawberry.Schema(query=Query, extensions=[DjangoOptimizerExtension(enable_only_optimization=False, enable_prefetch_related_optimization=True)])
+    assert DjangoOptimizerExtension.enabled.get()
+
+    res = schema.execute_sync(query, {"pk": milestone.pk})
+
+    assert res.errors is None
