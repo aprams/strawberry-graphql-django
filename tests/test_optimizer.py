@@ -1806,6 +1806,7 @@ class DemoProjectType:
 
     @classmethod
     def get_queryset(cls, queryset, info, **kwargs):
+        # adding .distinct() here fixes the issue, but is not a great solution
         return queryset
 
 @strawberry_django.type(Milestone, pagination=True)
@@ -1823,14 +1824,15 @@ def test_prefetch_multi_field_single_required_multiple_returned_num_instances(
         # projects: list[ProjectType] = strawberry_django.field()
         milestone: DemoMilestoneType = strawberry_django.field()
 
-    project = ProjectFactory.create()
-
-    milestone = MilestoneFactory.create(name="Foo", project=project)
-
-    # implement this: Ignore stdout
     with contextlib.redirect_stdout(io.StringIO()):
+        project = ProjectFactory.create()
+        milestone = MilestoneFactory.create(name="Foo", project=project)
+        # All of thse will also be instantiated in memory, despite not being relevant for the query below
+        other_milestones = MilestoneFactory.create_batch(1000, name="Bar", project=project)
+        # Unrelated, these will not be instantiated afterwards, just to demonstrate that the reverse relation seems to
+        # matter
         project2 = ProjectFactory.create()
-        milestone2 = MilestoneFactory.create_batch(1000, name="Bar", project=project)
+        other_milestone2 = MilestoneFactory.create_batch(50, name="Bar", project=project2)
 
     print("INIT FINISHED")
 
