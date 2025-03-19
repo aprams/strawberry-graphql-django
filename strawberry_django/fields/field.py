@@ -322,6 +322,8 @@ class StrawberryDjangoField(
             filter_with_perms(queryset, info), info, **kwargs
         )
 
+        # TODO: From here on, the project queryset is suddenly 1002 elements long, before the two lines above just two
+
         # If optimizer extension is enabled, optimize this queryset
         ext = optimizer.optimizer.get()
         if ext is not None:
