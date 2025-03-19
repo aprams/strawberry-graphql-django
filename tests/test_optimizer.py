@@ -1798,7 +1798,6 @@ def test_prefetch_multi_field_single_required_multiple_returned(
 
 @strawberry_django.type(
     Project,
-    pagination=True
 )
 class DemoProjectType:
     pk: strawberry.ID
@@ -1809,7 +1808,7 @@ class DemoProjectType:
         # adding .distinct() here fixes the issue, but is not a great solution
         return queryset
 
-@strawberry_django.type(Milestone, pagination=True)
+@strawberry_django.type(Milestone)
 class DemoMilestoneType:
     pk: strawberry.ID
     project: DemoProjectType
